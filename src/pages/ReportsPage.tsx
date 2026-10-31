@@ -461,7 +461,7 @@ export const ReportsPage: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#00692B] bg-[#FFFCD5]/80 hover:bg-[#FFFCD5] border border-[#82C341] rounded transition-colors shadow-xs cursor-pointer"
           >
             <FileSpreadsheet className="w-4 h-4 text-[#00692B]" />
-            <span>Xuất Excel (.xls)</span>
+            <span>Xuất Excel (.xlsx)</span>
           </button>
 
           <button

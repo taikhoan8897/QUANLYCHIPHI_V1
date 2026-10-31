@@ -234,7 +234,7 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="p-4 sm:p-6 max-w-7xl mx-auto space-y-6">
-      {/* Top Banner & Context Description */}
+      {/* Top Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-lg border border-slate-200 shadow-xs">
         <div>
           <div className="flex items-center gap-2">
@@ -242,11 +242,6 @@ export const HomePage: React.FC = () => {
               {canViewAll ? 'Quản Lý Toàn Bộ Chi Phí Doanh Nghiệp' : 'Quản Lý Chi Phí Cá Nhân'}
             </h2>
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            {canViewAll
-              ? 'Hiển thị chi phí của tất cả các user. Hỗ trợ lọc theo user, quản lý và xuất báo cáo cấp quản trị.'
-              : 'Hiển thị các khoản chi phí do chính bạn tạo. Hỗ trợ thêm mới, chỉnh sửa, xóa và xuất báo cáo của user.'}
-          </p>
         </div>
 
         {/* Action Buttons */}
@@ -263,21 +258,12 @@ export const HomePage: React.FC = () => {
           </button>
 
           <button
-            onClick={handleExportCSV}
-            className="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 border border-slate-300 rounded-md transition-colors shadow-xs cursor-pointer"
-            title="Xuất file CSV"
-          >
-            <Download className="w-3.5 h-3.5 text-slate-500" />
-            <span>{canViewAll ? 'Xuất CSV' : 'XUẤT BÁO CÁO CỦA USER'}</span>
-          </button>
-
-          <button
             onClick={handleExportExcel}
             className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold text-[#00692B] bg-[#FFFCD5]/80 hover:bg-[#FFFCD5] border border-[#82C341] rounded-md transition-colors shadow-xs cursor-pointer"
-            title="Xuất bảng tính Excel"
+            title="Xuất bảng tính Excel (.xlsx)"
           >
             <FileSpreadsheet className="w-3.5 h-3.5 text-[#00692B]" />
-            <span>Xuất Excel (.xls)</span>
+            <span>Xuất Excel (.xlsx)</span>
           </button>
         </div>
       </div>

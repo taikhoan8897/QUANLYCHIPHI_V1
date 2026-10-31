@@ -59,45 +59,44 @@ export function exportToCSV(filename: string, headers: string[], rows: (string |
   URL.revokeObjectURL(url);
 }
 
+import * as XLSX from 'xlsx';
+
 /**
- * Exports tabular data as an Excel XML spreadsheet file (.xls)
- * which Excel opens natively with styles and headers intact.
+ * Exports tabular data as a genuine modern Microsoft Excel spreadsheet (.xlsx)
+ * with full Vietnamese Unicode support and clean column widths.
  */
-export function exportToExcelTable(filename: string, title: string, headers: string[], rows: (string | number)[][]): void {
-  const headerHtml = headers.map(h => `<th style="background:#003366;color:#ffffff;border:1px solid #cccccc;padding:8px;font-weight:bold;">${h}</th>`).join('');
-  const rowsHtml = rows
-    .map(
-      (row, idx) =>
-        `<tr style="background:${idx % 2 === 0 ? '#ffffff' : '#f9f9f9'}">` +
-        row.map(cell => `<td style="border:1px solid #cccccc;padding:6px;${typeof cell === 'number' ? 'text-align:right;' : ''}">${cell}</td>`).join('') +
-        `</tr>`
-    )
-    .join('');
+export function exportToExcelTable(
+  filename: string,
+  title: string,
+  headers: string[],
+  rows: (string | number)[][]
+): void {
+  const wsData: (string | number)[][] = [
+    [title],
+    [`Ngày xuất: ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN')}`],
+    [],
+    headers,
+    ...rows,
+  ];
 
-  const template = `
-    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
-      <head>
-        <!--[if gte mso 9]><xml><x:ExcelWorkbook><x:ExcelWorksheets><x:ExcelWorksheet><x:Name>BaoCao</x:Name><x:WorksheetOptions><x:DisplayGridlines/></x:WorksheetOptions></x:ExcelWorksheet></x:ExcelWorksheets></x:ExcelWorkbook></xml><![endif]-->
-        <meta http-equiv="content-type" content="text/plain; charset=UTF-8"/>
-      </head>
-      <body>
-        <h2 style="font-family: Arial, sans-serif; color: #003366;">${title}</h2>
-        <p style="font-family: Arial, sans-serif; font-size: 12px; color: #666;">Ngày xuất: ${new Date().toLocaleDateString('vi-VN')} ${new Date().toLocaleTimeString('vi-VN')}</p>
-        <table border="1" style="border-collapse:collapse;font-family:Arial, sans-serif;font-size:13px;">
-          <thead><tr>${headerHtml}</tr></thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>
-      </body>
-    </html>
-  `;
+  const ws = XLSX.utils.aoa_to_sheet(wsData);
 
-  const blob = new Blob(['\uFEFF' + template], { type: 'application/vnd.ms-excel;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = `${filename}.xls`;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // Auto calculate reasonable column widths
+  const colWidths = headers.map((h, colIdx) => {
+    let maxLen = h.length;
+    rows.forEach(r => {
+      const cellVal = r[colIdx];
+      if (cellVal !== undefined && cellVal !== null) {
+        const len = String(cellVal).length;
+        if (len > maxLen) maxLen = len;
+      }
+    });
+    return { wch: Math.min(Math.max(maxLen + 3, 10), 60) };
+  });
+  ws['!cols'] = colWidths;
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Báo Cáo Chi Phí');
+
+  XLSX.writeFile(wb, `${filename}.xlsx`, { bookType: 'xlsx' });
 }

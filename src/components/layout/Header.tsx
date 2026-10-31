@@ -5,7 +5,7 @@
 
 import React, { useState } from 'react';
 import { useExpense } from '../../context/ExpenseContext';
-import { ShieldCheck, UserCheck, LogOut, ChevronDown, RefreshCw, Sprout } from 'lucide-react';
+import { ShieldCheck, UserCheck, LogOut, ChevronDown, RefreshCw, KeyRound, X, Check } from 'lucide-react';
 import { THACO_COLORS } from '../../theme/thacoBrand';
 import { getRoleInfo } from '../../utils/permissionUtils';
 
@@ -14,9 +14,47 @@ interface HeaderProps {
 }
 
 export const Header: React.FC<HeaderProps> = ({ currentTab }) => {
-  const { currentUser, users, switchUser, logout, resetToDefaultData } = useExpense();
+  const { currentUser, users, switchUser, logout, resetToDefaultData, changePassword } = useExpense();
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
+
+  // Change Password state
+  const [showChangePasswordModal, setShowChangePasswordModal] = useState(false);
+  const [oldPassword, setOldPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordSuccess, setPasswordSuccess] = useState('');
+
+  const handleChangePasswordSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordError('');
+    setPasswordSuccess('');
+
+    if (!currentUser) return;
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Mật khẩu mới và xác nhận mật khẩu không khớp nhau!');
+      return;
+    }
+    if (newPassword.length < 3) {
+      setPasswordError('Mật khẩu mới phải có ít nhất 3 ký tự!');
+      return;
+    }
+
+    const res = changePassword(currentUser.maNV, oldPassword, newPassword);
+    if (!res.success) {
+      setPasswordError(res.message);
+    } else {
+      setPasswordSuccess('Đổi mật khẩu thành công!');
+      setTimeout(() => {
+        setShowChangePasswordModal(false);
+        setOldPassword('');
+        setNewPassword('');
+        setConfirmPassword('');
+        setPasswordSuccess('');
+      }, 1500);
+    }
+  };
 
   const getTabTitle = (tab: string) => {
     switch (tab) {
@@ -37,9 +75,6 @@ export const Header: React.FC<HeaderProps> = ({ currentTab }) => {
     <header className="h-16 bg-white border-b border-emerald-900/10 px-6 flex items-center justify-between gap-4 sticky top-0 z-20 shadow-2xs">
       {/* Breadcrumb & Section Name */}
       <div className="flex items-center gap-2 text-sm text-slate-500 min-w-0">
-        <div className="w-6 h-6 rounded bg-[#00692B] flex items-center justify-center text-white shrink-0 shadow-2xs">
-          <Sprout className="w-3.5 h-3.5 text-[#82C341]" />
-        </div>
         <span className="font-extrabold text-[#00692B] whitespace-nowrap tracking-wide">THACO AGRI</span>
         <span className="text-slate-300">/</span>
         <span className="text-slate-800 font-semibold whitespace-nowrap truncate">{getTabTitle(currentTab)}</span>
@@ -116,13 +151,29 @@ export const Header: React.FC<HeaderProps> = ({ currentTab }) => {
                 </div>
               </div>
 
-              <div className="pt-1 px-2">
+              <div className="pt-1 px-2 border-t border-slate-100">
+                <button
+                  onClick={() => {
+                    setShowUserMenu(false);
+                    setOldPassword('');
+                    setNewPassword('');
+                    setConfirmPassword('');
+                    setPasswordError('');
+                    setPasswordSuccess('');
+                    setShowChangePasswordModal(true);
+                  }}
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-slate-700 hover:bg-emerald-50 hover:text-[#00692B] rounded-lg transition-colors font-medium cursor-pointer"
+                >
+                  <KeyRound className="w-3.5 h-3.5 text-[#00692B]" />
+                  Đổi mật khẩu cá nhân
+                </button>
+
                 <button
                   onClick={() => {
                     setShowUserMenu(false);
                     logout();
                   }}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium cursor-pointer"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium cursor-pointer mt-0.5"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   Đăng xuất hệ thống
@@ -158,6 +209,107 @@ export const Header: React.FC<HeaderProps> = ({ currentTab }) => {
                 Đồng ý khôi phục
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Change Password Modal */}
+      {showChangePasswordModal && currentUser && (
+        <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full border border-emerald-900/20 overflow-hidden">
+            <div className="p-4 bg-[#00692B] text-white flex items-center justify-between border-b-2 border-[#82C341]">
+              <div className="flex items-center gap-2">
+                <KeyRound className="w-4 h-4 text-[#82C341]" />
+                <h3 className="text-sm font-bold text-[#FFFCD5]">
+                  Đổi Mật Khẩu Cá Nhân
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowChangePasswordModal(false)}
+                className="text-emerald-100 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleChangePasswordSubmit} className="p-5 space-y-4 text-xs">
+              <div className="bg-slate-50 p-2.5 rounded border border-slate-200">
+                <span className="text-slate-500">Tài khoản: </span>
+                <span className="font-bold text-slate-900">{currentUser.tenNV}</span>
+                <span className="font-mono font-bold text-[#00692B] ml-1">({currentUser.maNV})</span>
+              </div>
+
+              {passwordError && (
+                <div className="p-2.5 bg-red-50 border border-red-200 rounded text-red-700 text-xs font-medium">
+                  {passwordError}
+                </div>
+              )}
+
+              {passwordSuccess && (
+                <div className="p-2.5 bg-emerald-50 border border-emerald-300 rounded text-[#00692B] text-xs font-semibold flex items-center gap-1.5">
+                  <Check className="w-3.5 h-3.5 text-[#00692B]" />
+                  <span>{passwordSuccess}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Mật khẩu hiện tại <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={oldPassword}
+                  onChange={e => setOldPassword(e.target.value)}
+                  required
+                  placeholder="Nhập mật khẩu đang dùng"
+                  className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#00692B]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Mật khẩu mới <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={newPassword}
+                  onChange={e => setNewPassword(e.target.value)}
+                  required
+                  placeholder="Nhập mật khẩu mới"
+                  className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#00692B]"
+                />
+              </div>
+
+              <div>
+                <label className="block font-semibold text-slate-700 mb-1">
+                  Xác nhận mật khẩu mới <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="password"
+                  value={confirmPassword}
+                  onChange={e => setConfirmPassword(e.target.value)}
+                  required
+                  placeholder="Nhập lại mật khẩu mới"
+                  className="w-full bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-900 focus:bg-white focus:outline-none focus:ring-1 focus:ring-[#00692B]"
+                />
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowChangePasswordModal(false)}
+                  className="px-3 py-1.5 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 rounded cursor-pointer"
+                >
+                  Đóng
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 text-xs font-bold text-[#FFFCD5] bg-[#00692B] hover:bg-[#005422] rounded shadow-xs cursor-pointer"
+                >
+                  Lưu mật khẩu mới
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

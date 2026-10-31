@@ -9,6 +9,7 @@ import { ExpenseRecord, CostClassification } from '../../types';
 import { X, Check, Calculator } from 'lucide-react';
 import { formatVND } from '../../utils/exportUtils';
 import { THACO_COLORS } from '../../theme/thacoBrand';
+import { generateNextExpenseCode } from '../../utils/expenseCodeGenerator';
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -28,6 +29,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
     costObjects,
     suppliers,
     users,
+    expenses,
     addExpense,
     updateExpense,
   } = useExpense();
@@ -71,10 +73,13 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       const yyyy = now.getFullYear();
       const mm = String(now.getMonth() + 1).padStart(2, '0');
       const dd = String(now.getDate()).padStart(2, '0');
-      const randomSuffix = Math.floor(100 + Math.random() * 900);
+      const defaultDate = `${yyyy}-${mm}-${dd}`;
 
-      setMaChiPhi(`EXP-${yyyy}${mm}-${randomSuffix}`);
-      setNgayPhatSinh(`${yyyy}-${mm}-${dd}`);
+      // Auto generate next unique code EXP-YYYYMM-XXX
+      const autoCode = generateNextExpenseCode(defaultDate, expenses);
+
+      setMaChiPhi(autoCode);
+      setNgayPhatSinh(defaultDate);
       const defaultCatalog = costCatalog[0];
       if (defaultCatalog) {
         setMaDanhMucChiPhi(defaultCatalog.maChiPhi);
@@ -91,7 +96,17 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       setSoChungTu(`HD-${Math.floor(1000 + Math.random() * 9000)}`);
     }
     setErrorMsg('');
-  }, [expenseToEdit, isOpen, currentUser]);
+  }, [expenseToEdit, isOpen, currentUser, expenses]);
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newDate = e.target.value;
+    setNgayPhatSinh(newDate);
+    // If creating, automatically regenerate code matching new year-month without collisions
+    if (!isEdit) {
+      const nextCode = generateNextExpenseCode(newDate, expenses);
+      setMaChiPhi(nextCode);
+    }
+  };
 
   const handleCatalogChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedCode = e.target.value;
@@ -126,8 +141,16 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
     const supplierObj = suppliers.find(s => s.maNCC === maNCC);
     const inchargeUser = users.find(u => u.maNV === nguoiPhuTrach);
 
+    // Guarantee code is unique and matches auto-increment rule
+    let finalCode = maChiPhi;
+    if (!isEdit) {
+      if (!finalCode || expenses.some(e => e.maChiPhi === finalCode)) {
+        finalCode = generateNextExpenseCode(ngayPhatSinh, expenses);
+      }
+    }
+
     const recordData = {
-      maChiPhi: maChiPhi.trim() || `EXP-${Date.now()}`,
+      maChiPhi: finalCode,
       ngayPhatSinh,
       maDanhMucChiPhi,
       tenDanhMuc,
@@ -188,16 +211,28 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Mã chi phí <span className="text-red-500">*</span>
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="block text-xs font-semibold text-slate-700">
+                  Mã chi phí <span className="text-red-500">*</span>
+                </label>
+                <span className="text-[10px] font-bold text-[#00692B] bg-[#FFFCD5] px-2 py-0.5 rounded border border-[#82C341]/60">
+                  {isEdit ? 'Khóa cố định' : 'Mã tự sinh tự động'}
+                </span>
+              </div>
               <input
                 type="text"
                 value={maChiPhi}
-                onChange={e => setMaChiPhi(e.target.value)}
-                required
-                className="w-full text-xs bg-slate-50 border border-slate-300 rounded px-3 py-2 font-mono text-slate-900 focus:bg-white focus:ring-1 focus:ring-[#00692B] focus:outline-none font-bold"
+                readOnly
+                disabled
+                tabIndex={-1}
+                className="w-full text-xs bg-slate-100 border border-slate-300 rounded px-3 py-2 font-mono text-[#00692B] font-extrabold cursor-not-allowed select-none shadow-2xs"
+                title="Mã chi phí sinh tự động theo quy tắc EXP-YYYYMM-XXX và không được phép thao tác"
               />
+              <p className="text-[11px] text-slate-500 mt-1">
+                {isEdit
+                  ? 'Mã chứng từ chi phí được giữ cố định sau khi phát sinh'
+                  : 'Tự động tăng theo tháng (EXP-NĂM THÁNG-XXX) và không thể trùng'}
+              </p>
             </div>
 
             <div>
@@ -207,7 +242,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
               <input
                 type="date"
                 value={ngayPhatSinh}
-                onChange={e => setNgayPhatSinh(e.target.value)}
+                onChange={handleDateChange}
                 required
                 className="w-full text-xs bg-slate-50 border border-slate-300 rounded px-3 py-2 text-slate-900 focus:bg-white focus:ring-1 focus:ring-[#00692B] focus:outline-none"
               />

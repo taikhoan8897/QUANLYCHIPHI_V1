@@ -30,9 +30,11 @@ import {
   Check,
   X,
   KeyRound,
+  RotateCcw,
   Database,
 } from 'lucide-react';
 import { THACO_COLORS } from '../theme/thacoBrand';
+import { getRoleInfo } from '../utils/permissionUtils';
 
 interface AdminPageProps {
   activeSubTab?: string;
@@ -52,6 +54,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
     units,
     costObjects,
     currentUserPermissions,
+    resetUserPassword,
     addRole,
     updateRole,
     deleteRole,
@@ -101,6 +104,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
   const [deleteConfirm, setDeleteConfirm] = useState<{ type: string; id: string; name: string } | null>(
     null
   );
+  const [resetTargetUser, setResetTargetUser] = useState<User | null>(null);
+  const [resetSuccessMessage, setResetSuccessMessage] = useState<string | null>(null);
 
   // ----------------------------------------------------
   // SUB-TAB 1: ROLES
@@ -186,10 +191,11 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           </div>
           <button
             onClick={() => {
+              const defaultMaNV = `NV00${users.length + 1}`;
               setActiveItem({
-                maNV: `NV00${users.length + 1}`,
+                maNV: defaultMaNV,
                 tenNV: '',
-                hashpass: '123456',
+                hashpass: defaultMaNV, // Mặc định mật khẩu là mã số nhân viên theo yêu cầu
                 role: 'USER',
                 phongBan: 'Khối Nông trường Gia Lai',
                 email: '',
@@ -214,7 +220,7 @@ export const AdminPage: React.FC<AdminPageProps> = ({
               <th className="py-2.5 px-4">Phòng ban</th>
               <th className="py-2.5 px-4">Mật khẩu (Hashpass)</th>
               <th className="py-2.5 px-4">Email</th>
-              <th className="py-2.5 px-4 text-center w-24">Thao tác</th>
+              <th className="py-2.5 px-4 text-center w-28">Thao tác</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -225,28 +231,35 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 <td className="py-3 px-4 font-semibold text-slate-900">{u.tenNV}</td>
                 <td className="py-3 px-4">
                   <span
-                    className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                      u.role === 'ADMIN'
-                        ? 'bg-[#00692B] text-[#FFFCD5]'
-                        : 'bg-emerald-100 text-[#00692B]'
-                    }`}
+                    className={`text-[10px] font-bold px-2 py-0.5 rounded ${getRoleInfo(u.role).badgeClass}`}
                   >
-                    {u.role === 'ADMIN' ? 'Quản trị' : 'User'}
+                    {getRoleInfo(u.role).label}
                   </span>
                 </td>
                 <td className="py-3 px-4 text-slate-700">{u.phongBan}</td>
                 <td className="py-3 px-4 font-mono text-slate-500">
-                  <span className="bg-slate-100 px-1.5 py-0.5 rounded">{u.hashpass}</span>
+                  <span className="bg-slate-100 px-1.5 py-0.5 rounded font-bold text-slate-700">{u.hashpass}</span>
                 </td>
-                <td className="py-3 px-4 text-slate-500">{u.email}</td>
+                <td className="py-3 px-4 text-slate-600 font-mono text-[11px]">{u.email || '-'}</td>
                 <td className="py-3 px-4 text-center">
-                  <div className="flex items-center justify-center gap-2">
+                  <div className="flex items-center justify-center gap-1.5">
+                    <button
+                      onClick={() => setResetTargetUser(u)}
+                      className="p-1 text-slate-400 hover:text-amber-600 rounded hover:bg-amber-50 cursor-pointer"
+                      title={`Đặt lại mật khẩu về mặc định (${u.maNV})`}
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
                     <button
                       onClick={() => {
-                        setActiveItem(u);
+                        setActiveItem({
+                          ...u,
+                          email: u.email || '',
+                        });
                         setModalMode('edit');
                       }}
-                      className="p-1 text-slate-400 hover:text-[#00692B] rounded hover:bg-slate-100"
+                      className="p-1 text-slate-400 hover:text-[#00692B] rounded hover:bg-slate-100 cursor-pointer"
+                      title="Sửa thông tin người dùng"
                     >
                       <Edit2 className="w-3.5 h-3.5" />
                     </button>
@@ -255,7 +268,8 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                         onClick={() =>
                           setDeleteConfirm({ type: 'user', id: u.maNV, name: u.tenNV })
                         }
-                        className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-slate-100"
+                        className="p-1 text-slate-400 hover:text-red-600 rounded hover:bg-slate-100 cursor-pointer"
+                        title="Xóa tài khoản người dùng"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -706,8 +720,12 @@ export const AdminPage: React.FC<AdminPageProps> = ({
       if (modalMode === 'create') addRole(activeItem);
       else updateRole(activeItem.maRole, activeItem);
     } else if (currentSubTab === 'users') {
-      if (modalMode === 'create') addUser(activeItem);
-      else updateUser(activeItem.maNV, activeItem);
+      const userToSave = {
+        ...activeItem,
+        hashpass: activeItem.hashpass?.trim() || activeItem.maNV,
+      };
+      if (modalMode === 'create') addUser(userToSave);
+      else updateUser(userToSave.maNV, userToSave);
     } else if (currentSubTab === 'groups') {
       if (modalMode === 'create') addCostGroup(activeItem);
       else updateCostGroup(activeItem.maNhom, activeItem);
@@ -777,6 +795,22 @@ export const AdminPage: React.FC<AdminPageProps> = ({
           </span>
         </div>
       </div>
+
+      {/* Success Notification for Password Reset */}
+      {resetSuccessMessage && (
+        <div className="bg-emerald-50 border border-emerald-300 text-[#00692B] px-4 py-3 rounded-lg text-xs flex items-center justify-between shadow-xs animate-in fade-in">
+          <div className="flex items-center gap-2">
+            <Check className="w-4 h-4 text-[#00692B] shrink-0" />
+            <span className="font-semibold">{resetSuccessMessage}</span>
+          </div>
+          <button
+            onClick={() => setResetSuccessMessage(null)}
+            className="text-emerald-700 hover:text-emerald-900 cursor-pointer p-1"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
 
       {/* Admin Tabs with THACO AGRI Green */}
       <div className="flex flex-wrap items-center gap-1.5 bg-slate-100 p-1.5 rounded-lg border border-slate-200">
@@ -1124,7 +1158,14 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     <input
                       type="text"
                       value={activeItem.maNV}
-                      onChange={e => setActiveItem({ ...activeItem, maNV: e.target.value })}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setActiveItem({
+                          ...activeItem,
+                          maNV: val,
+                          hashpass: modalMode === 'create' ? val : activeItem.hashpass,
+                        });
+                      }}
                       required
                       disabled={modalMode === 'edit'}
                       className="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 font-mono font-bold"
@@ -1141,16 +1182,39 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                     />
                   </div>
                   <div>
-                    <label className="block font-semibold text-slate-700 mb-1">
-                      Mật khẩu đăng nhập (Hashpass)
-                    </label>
+                    <label className="block font-semibold text-slate-700 mb-1">Email</label>
+                    <input
+                      type="email"
+                      value={activeItem.email || ''}
+                      onChange={e => setActiveItem({ ...activeItem, email: e.target.value })}
+                      placeholder="vidu@thaco.com.vn"
+                      className="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5"
+                    />
+                  </div>
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="block font-semibold text-slate-700">
+                        Mật khẩu đăng nhập (Hashpass)
+                      </label>
+                      {modalMode === 'create' && (
+                        <span className="text-[10px] font-bold text-[#00692B] bg-[#FFFCD5] px-1.5 py-0.5 rounded border border-[#82C341]/60">
+                          Mặc định là Mã NV
+                        </span>
+                      )}
+                    </div>
                     <input
                       type="text"
                       value={activeItem.hashpass}
                       onChange={e => setActiveItem({ ...activeItem, hashpass: e.target.value })}
                       required
+                      placeholder={activeItem.maNV}
                       className="w-full bg-slate-50 border border-slate-300 rounded px-2.5 py-1.5 font-mono"
                     />
+                    <p className="text-[11px] text-slate-500 mt-1">
+                      {modalMode === 'create'
+                        ? `Mật khẩu khởi tạo tự động là mã nhân viên (${activeItem.maNV || 'Mã NV'}).`
+                        : 'Mật khẩu đăng nhập của tài khoản.'}
+                    </p>
                   </div>
                   <div>
                     <label className="block font-semibold text-slate-700 mb-1">Role</label>
@@ -1252,6 +1316,57 @@ export const AdminPage: React.FC<AdminPageProps> = ({
                 className="px-4 py-1.5 text-xs font-semibold text-white bg-red-600 hover:bg-red-700 rounded cursor-pointer"
               >
                 Xác nhận xóa
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reset Password Confirmation Modal */}
+      {resetTargetUser && (
+        <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-slate-200">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 shrink-0">
+                <RotateCcw className="w-5 h-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-bold text-slate-900">Đặt Lại Mật Khẩu Người Dùng</h4>
+                <p className="text-xs text-slate-500">Khôi phục mật khẩu tài khoản về mặc định</p>
+              </div>
+            </div>
+
+            <p className="text-xs text-slate-600 mb-3 leading-relaxed">
+              Bạn có chắc chắn muốn đặt lại mật khẩu cho nhân viên <strong>{resetTargetUser.tenNV}</strong> (Mã: <span className="font-mono font-bold text-[#00692B]">{resetTargetUser.maNV}</span>)?
+            </p>
+
+            <div className="bg-[#FFFCD5]/70 border border-[#82C341] rounded-lg p-3 text-xs text-[#00692B] mb-5">
+              <div className="font-bold mb-0.5">Mật khẩu mới sau khi đặt lại:</div>
+              <div className="font-mono text-base font-extrabold text-[#00692B]">{resetTargetUser.maNV}</div>
+              <p className="text-[11px] text-slate-600 mt-1">
+                Theo quy định hệ thống, mật khẩu mặc định được đặt lại bằng chính mã số nhân viên. Người dùng có thể tự đổi mật khẩu sau khi đăng nhập.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setResetTargetUser(null)}
+                className="px-3 py-1.5 text-xs text-slate-600 bg-slate-100 hover:bg-slate-200 rounded cursor-pointer"
+              >
+                Hủy bỏ
+              </button>
+              <button
+                onClick={() => {
+                  const res = resetUserPassword(resetTargetUser.maNV);
+                  setResetTargetUser(null);
+                  if (res.success) {
+                    setResetSuccessMessage(res.message);
+                    setTimeout(() => setResetSuccessMessage(null), 5000);
+                  }
+                }}
+                className="px-4 py-1.5 text-xs font-bold text-white bg-amber-600 hover:bg-amber-700 rounded shadow-xs cursor-pointer"
+              >
+                Xác nhận đặt lại
               </button>
             </div>
           </div>

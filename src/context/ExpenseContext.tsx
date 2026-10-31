@@ -26,6 +26,7 @@ import {
   initialExpenses,
 } from '../data/initialData';
 import { getRolePermissions } from '../utils/permissionUtils';
+import { generateNextExpenseCode } from '../utils/expenseCodeGenerator';
 
 interface ExpenseContextType {
   currentUser: User | null;
@@ -39,10 +40,12 @@ interface ExpenseContextType {
   costObjects: CostObject[];
   expenses: ExpenseRecord[];
   
-  // Auth
+  // Auth & Password
   login: (maNV: string, hashpass: string) => boolean;
   logout: () => void;
   switchUser: (maNV: string) => void;
+  changePassword: (maNV: string, oldPass: string, newPass: string) => { success: boolean; message: string };
+  resetUserPassword: (maNV: string) => { success: boolean; newPass: string; message: string };
 
   // Expense CRUD
   addExpense: (expense: Omit<ExpenseRecord, 'id' | 'createdAt'>) => ExpenseRecord;
@@ -236,10 +239,62 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
     }
   };
 
+  const changePassword = (
+    maNV: string,
+    oldPass: string,
+    newPass: string
+  ): { success: boolean; message: string } => {
+    const user = users.find(u => u.maNV === maNV);
+    if (!user) {
+      return { success: false, message: 'Không tìm thấy tài khoản người dùng!' };
+    }
+    if (user.hashpass !== oldPass) {
+      return { success: false, message: 'Mật khẩu hiện tại không chính xác!' };
+    }
+    if (!newPass || newPass.trim().length === 0) {
+      return { success: false, message: 'Mật khẩu mới không được để trống!' };
+    }
+
+    const updatedUser = { ...user, hashpass: newPass };
+    setUsers(prev => prev.map(u => (u.maNV === maNV ? updatedUser : u)));
+    if (currentUser?.maNV === maNV) {
+      setCurrentUser(updatedUser);
+    }
+    return { success: true, message: 'Đổi mật khẩu thành công!' };
+  };
+
+  const resetUserPassword = (
+    maNV: string
+  ): { success: boolean; newPass: string; message: string } => {
+    const user = users.find(u => u.maNV === maNV);
+    if (!user) {
+      return { success: false, newPass: '', message: 'Không tìm thấy người dùng!' };
+    }
+    // Mặc định pass sau reset là mã số nhân viên
+    const defaultPass = user.maNV;
+    const updatedUser = { ...user, hashpass: defaultPass };
+    setUsers(prev => prev.map(u => (u.maNV === maNV ? updatedUser : u)));
+    if (currentUser?.maNV === maNV) {
+      setCurrentUser(updatedUser);
+    }
+    return {
+      success: true,
+      newPass: defaultPass,
+      message: `Đã đặt lại mật khẩu cho nhân viên ${user.tenNV} về mặc định (${defaultPass}).`,
+    };
+  };
+
   // Expenses CRUD
   const addExpense = (data: Omit<ExpenseRecord, 'id' | 'createdAt'>): ExpenseRecord => {
+    // Ensure maChiPhi exists and does not collide
+    const finalMaChiPhi =
+      data.maChiPhi && !expenses.some(e => e.maChiPhi === data.maChiPhi)
+        ? data.maChiPhi
+        : generateNextExpenseCode(data.ngayPhatSinh, expenses);
+
     const newRecord: ExpenseRecord = {
       ...data,
+      maChiPhi: finalMaChiPhi,
       id: `exp-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
       createdAt: new Date().toISOString(),
     };
@@ -342,6 +397,8 @@ export const ExpenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
         login,
         logout,
         switchUser,
+        changePassword,
+        resetUserPassword,
         addExpense,
         updateExpense,
         deleteExpense,
