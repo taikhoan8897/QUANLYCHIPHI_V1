@@ -1,0 +1,6 @@
+{
+  "name": "CostMaster - Quản Lý Chi Phí Doanh Nghiệp",
+  "description": "Hệ thống quản lý, báo cáo tổng hợp chi phí đa chiều theo kỳ, đơn vị, nhà cung cấp và đối tượng chi phí theo chuẩn ERP/Ant Design.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

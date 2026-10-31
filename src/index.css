@@ -1,0 +1,99 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --thaco-green-dark: #00692B;
+  --thaco-green-light: #82C341;
+  --thaco-yellow: #FFFCD5;
+  --thaco-gradient: linear-gradient(135deg, #82C341 0%, #00692B 100%);
+}
+
+@layer base {
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    background-color: #f8faf7;
+  }
+  
+  .font-mono, .tabular-nums {
+    font-family: 'JetBrains Mono', monospace;
+    font-variant-numeric: tabular-nums;
+  }
+}
+
+/* THACO AGRI Custom utility classes */
+.bg-thaco-dark {
+  background-color: #00692B;
+}
+
+.bg-thaco-dark-deep {
+  background-color: #012A12;
+}
+
+.text-thaco-dark {
+  color: #00692B;
+}
+
+.bg-thaco-light {
+  background-color: #82C341;
+}
+
+.text-thaco-light {
+  color: #82C341;
+}
+
+.bg-thaco-yellow {
+  background-color: #FFFCD5;
+}
+
+.bg-thaco-gradient {
+  background: linear-gradient(135deg, #82C341 0%, #00692B 100%);
+}
+
+.border-thaco-dark {
+  border-color: #00692B;
+}
+
+.border-thaco-light {
+  border-color: #82C341;
+}
+
+/* Custom scrollbars for data tables */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #a3cda8;
+  border-radius: 3px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #00692B;
+}
+
+/* Frozen sticky table columns */
+.sticky-freeze-left {
+  position: sticky;
+  left: 0;
+  z-index: 10;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+}
+
+/* Print styling for enterprise cost reports */
+@media print {
+  body {
+    background: white !important;
+    color: black !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .print-break-inside-avoid {
+    break-inside: avoid;
+  }
+}
